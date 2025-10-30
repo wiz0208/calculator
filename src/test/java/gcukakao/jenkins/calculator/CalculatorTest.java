@@ -31,6 +31,8 @@ public class CalculatorTest {
 
 	@Test
 	public void testGetMyName() {
-		assertEquals("이슬기", calculator.getMyName());
+		String name = calculator.getMyName();
+		System.out.println("작성자: " + name);
+		assertEquals("이슬기", name);
 	}
 }

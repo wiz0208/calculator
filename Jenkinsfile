@@ -1,25 +1,67 @@
 pipeline {
     agent any
+
     stages {
-        stage("Compile") {
+        stage("Checkout") {
             steps {
-                sh "./gradlew compileJava"
+                checkout scm
             }
         }
+
+        stage("Setup Java") {
+            steps {
+                sh '''
+                    # Java 설치 확인 및 JAVA_HOME 설정
+                    if command -v java &> /dev/null; then
+                        java -version
+                        JAVA_BIN=$(readlink -f "$(which java)")
+                        export JAVA_HOME="$(dirname "$(dirname "$JAVA_BIN")")"
+                        echo "JAVA_HOME=$JAVA_HOME"
+                    else
+                        echo "Java가 설치되어 있지 않습니다. Gradle Toolchain이 자동으로 다운로드합니다."
+                    fi
+                '''
+            }
+        }
+
         stage("Build") {
             steps {
-                sh "./gradlew build"
+                sh '''
+                    chmod +x ./gradlew
+                    ./gradlew clean build -x test --no-daemon
+                '''
             }
         }
-        stage("Unit test") {
+
+        stage("Unit Test") {
             steps {
-                sh "./gradlew test"
+                sh '''
+                    ./gradlew test --no-daemon
+                '''
+            }
+            post {
+                always {
+                    junit 'build/test-results/test/**/*.xml'
+                }
+            }
+        }
+
+        stage("Print Name") {
+            steps {
+                echo '작성자: 이슬기'
             }
         }
     }
+
     post {
         always {
-            junit 'build/test-results/test/*.xml'
+            cleanWs()
+        }
+        success {
+            echo '빌드와 테스트가 성공적으로 완료되었습니다.'
+        }
+        failure {
+            echo '빌드 또는 테스트가 실패했습니다.'
         }
     }
 }
